@@ -44,6 +44,9 @@ header{
 }
 h1{font-size:1.2rem;margin:0}
 nav{display:flex;gap:8px;flex-wrap:wrap}
+.lesson-picker{display:flex;align-items:center;gap:8px;margin-left:auto}
+.lesson-picker label{font-weight:700;color:var(--muted)}
+.lesson-picker select{border:1px solid var(--border);border-radius:12px;padding:10px 34px 10px 12px;background:#fff;color:var(--text);font-weight:700;font-size:.95rem}
 nav button,.btn{
   border:0;
   border-radius:12px;
@@ -154,6 +157,8 @@ main{max-width:950px;margin:30px auto;padding:0 20px 50px}
 .small{font-size:.88rem;color:var(--muted)}
 @media(max-width:650px){
   .header-inner{align-items:flex-start;flex-direction:column}
+  .lesson-picker{width:100%;margin-left:0;justify-content:space-between}
+  .lesson-picker select{flex:1;max-width:240px}
   nav{width:100%}
   nav button{flex:1}
   .options{grid-template-columns:1fr}
@@ -167,6 +172,14 @@ main{max-width:950px;margin:30px auto;padding:0 20px 50px}
     <div>
       <h1>Vocabulary Practice</h1>
       <div class="small">Flashcards · Multiple Choice · Writing</div>
+    </div>
+    <div class="lesson-picker">
+      <label for="lessonSelect">Lección</label>
+      <select id="lessonSelect" aria-label="Seleccionar lección">
+        <option value="unit1">Unit 1</option>
+        <option value="unit2">Unit 2</option>
+        <option value="unit3">Unit 3</option>
+      </select>
     </div>
     <nav>
       <button class="active" data-view="flashcards">Flashcards</button>
@@ -242,12 +255,90 @@ main{max-width:950px;margin:30px auto;padding:0 20px 50px}
 </main>
 
 <script>
-const vocab = [
-  ["and","y"],["swimming","nadar"],["sport","deporte"],["cold","frío"],["can","poder"],["ill","enfermo"],["bed","cama"],["scared","miedo"],["late","tarde"],["again","otra vez"],["o'clock","en punto"],["good","bueno"],["friends","amigos"],["key","llave"],["table","mesa"],["tired","cansado"],["hungry","hambre"],["teacher","maestro"],["those","esos"],["people","gente"],["sunny","soleado"],["warm","cálido"],["today","hoy"],["weather","clima"],["nice","agradable"],["rich","rico"],["bag","bolsa"],["heavy","pesado"],["look","ver"],["player","jugador"],["home","casa"],["her","de ella"],["children","niños"],["school","escuela"],["at","en"],["driver","chofer"],["nurse","enfermera"],["but","pero"],["thirsty","sediento"],["very","muy"],["chair","silla"],["these","estos"],["beautiful","hermoso"],["early","temprano"],["work","trabajo"],["coat","abrigo"]
-];
+const lessons = {
+  unit1: [
+    ["and","y"],["swimming","nadar"],["sport","deporte"],["cold","frío"],["can","poder"],["ill","enfermo"],["bed","cama"],["scared","miedo"],["late","tarde"],["again","otra vez"],["o'clock","en punto"],["good","bueno"],["friends","amigos"],["key","llave"],["table","mesa"],["tired","cansado"],["hungry","hambre"],["teacher","maestro"],["those","esos"],["people","gente"],["sunny","soleado"],["warm","cálido"],["today","hoy"],["weather","clima"],["nice","agradable"],["rich","rico"],["bag","bolsa"],["heavy","pesado"],["look","ver"],["player","jugador"],["home","casa"],["her","de ella"],["children","niños"],["school","escuela"],["at","en"],["driver","chofer"],["nurse","enfermera"],["but","pero"],["thirsty","sediento"],["very","muy"],["chair","silla"],["these","estos"],["beautiful","hermoso"],["early","temprano"],["work","trabajo"],["coat","abrigo"]
+  ],
+  unit2: [
+    ["married","casado"],["mother","madre"],["parents","padres"],["room","habitación"],["shoes","zapatos"],["new","nuevo"],["where","dónde"],["from","de / desde"],["colour","color"],["car","carro"],["red","rojo"],["old","viejo / de edad"],["well","bien"],["how much","cuánto"],["hotel","hotel"],["expensive","caro"],["time","hora / tiempo"],["man","hombre"],["father","padre"],["English","inglés"],["seat","asiento"],["camera","cámara"],["blue","azul"],["sister","hermana"],["black","negro"],["woman","mujer"],["interesting","interesante"],["job","empleo"],["shops","tiendas"],["open","abierto"],["station","estación"],["near","cerca"],["interested","interesado"],["bus stop","parada de autobús"],["end","final"],["street","calle"],["oranges","naranjas"],["favourite","favorito"],["skiing","esquiar"],["kilo","kilo"],["Australian","australiano"],["lawyer","abogado"],["wife","esposa"],["designer","diseñador"],["Italian","italiano"],["hands","manos"],["dark","oscuro"]
+  ,
+  unit3: [
+    ["eat","comer"],["rain","llover"],["read","leer"],["sun","sol"],["shine","brillar"],["run","correr"],["walk","caminar"],["newspaper","periódico"],["have","tener / tomar"],["dinner","cena"],["listen","escuchar"],["turn off","apagar"],["television","televisión"],["come","venir"],["write","escribir"],["dance","bailar"],["sit","sentarse"],["lie","acostarse / estar recostado"],["quiet","silencio / tranquilo"],["wear","llevar puesto"],["hat","sombrero"],["football","fútbol"],["park","parque"],["phone","teléfono"],["later","más tarde"],["floor","piso / suelo"],["breakfast","desayuno"],["wait","esperar"],["build","construir"],["cook","cocinar"],["stand","estar de pie"],["stay","quedarse / alojarse"],["river","río"],["holiday","vacaciones"],["shower","ducha"],["city centre","centro de la ciudad"],["moment","momento"],["goodbye","adiós"],["snow","nevar / nieve"],["learn","aprender"],["music","música"],["wash","lavar"],["hair","cabello"],["piano","piano"],["laugh","reír"],["drink","beber"],["coffee","café"],["apple","manzana"],["kitchen","cocina"],["foot","pie"],["somebody","alguien"]
+  ]
+};
+let vocab = lessons.unit1;
 
 const shuffle = arr => [...arr].sort(() => Math.random() - .5);
 const normalize = s => s.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+
+const acceptedAnswers = {
+  "swimming": ["nadar", "natacion", "natación"],
+  "cold": ["frio", "frío", "fria", "fría"],
+  "ill": ["enfermo", "enferma"],
+  "scared": ["miedo", "asustado", "asustada", "tener miedo"],
+  "again": ["otra vez", "de nuevo", "nuevamente"],
+  "good": ["bueno", "buena", "bien"],
+  "friends": ["amigos", "amigas", "amigo", "amiga"],
+  "tired": ["cansado", "cansada"],
+  "hungry": ["hambre", "hambriento", "hambrienta", "tener hambre"],
+  "teacher": ["maestro", "maestra", "profesor", "profesora", "docente"],
+  "those": ["esos", "esas", "aquellos", "aquellas"],
+  "people": ["gente", "personas"],
+  "sunny": ["soleado", "soleada"],
+  "warm": ["calido", "cálido", "calida", "cálida", "templado", "templada"],
+  "nice": ["agradable", "bonito", "bonita", "amable"],
+  "rich": ["rico", "rica", "adinerado", "adinerada"],
+  "bag": ["bolsa", "bolso"],
+  "heavy": ["pesado", "pesada"],
+  "look": ["ver", "mirar"],
+  "player": ["jugador", "jugadora"],
+  "home": ["casa", "hogar"],
+  "her": ["de ella", "su", "a ella", "la"],
+  "children": ["niños", "ninos", "niñas", "ninas", "chicos", "chicas"],
+  "school": ["escuela", "colegio"],
+  "at": ["en", "a"],
+  "driver": ["chofer", "conductor", "conductora"],
+  "nurse": ["enfermera", "enfermero"],
+  "thirsty": ["sediento", "sedienta", "tener sed", "sed"],
+  "these": ["estos", "estas"],
+  "beautiful": ["hermoso", "hermosa", "bonito", "bonita", "bello", "bella"],
+  "early": ["temprano", "temprana"],
+  "work": ["trabajo", "trabajar"],
+  "coat": ["abrigo", "chaqueta"],
+  "married": ["casado","casada"], "parents": ["padres","papás","papas"],
+  "room": ["habitación","habitacion","cuarto"], "shoes": ["zapatos","calzado"],
+  "where": ["dónde","donde"], "car": ["carro","coche","auto","automóvil","automovil"],
+  "old": ["viejo","vieja","de edad"], "how much": ["cuánto","cuanto","cuánta","cuanta"],
+  "expensive": ["caro","cara","costoso","costosa"], "time": ["hora","tiempo"],
+  "seat": ["asiento","lugar"], "shops": ["tiendas","comercios"], "open": ["abierto","abierta"],
+  "near": ["cerca","cercano","cercana"], "interested": ["interesado","interesada"],
+  "bus stop": ["parada de autobús","parada de autobus","parada de bus"], "end": ["final","fin"],
+  "favourite": ["favorito","favorita","preferido","preferida"], "skiing": ["esquiar","esquí","esqui"],
+  "Australian": ["australiano","australiana"], "lawyer": ["abogado","abogada"],
+  "wife": ["esposa","mujer"], "designer": ["diseñador","diseñadora","disenador","disenadora"],
+  "Italian": ["italiano","italiana"], "dark": ["oscuro","oscura"],
+  "rain": ["llover","lluvia"], "shine": ["brillar","brilla","resplandecer"],
+  "run": ["correr","corre"], "walk": ["caminar","andar"],
+  "newspaper": ["periódico","periodico","diario"], "have": ["tener","tomar"],
+  "dinner": ["cena","cenar"], "listen": ["escuchar","oír","oir"],
+  "turn off": ["apagar","apaga"], "television": ["televisión","television","tele","tv"],
+  "sit": ["sentarse","sentar","estar sentado"], "lie": ["acostarse","recostarse","estar acostado","estar recostado"],
+  "quiet": ["silencio","tranquilo","tranquila","callado","callada"],
+  "wear": ["llevar puesto","usar","vestir"], "football": ["fútbol","futbol"],
+  "phone": ["teléfono","telefono","celular"], "floor": ["piso","suelo"],
+  "breakfast": ["desayuno","desayunar"], "stand": ["estar de pie","pararse"],
+  "stay": ["quedarse","alojarse","hospedarse"], "holiday": ["vacaciones","día festivo","dia festivo"],
+  "shower": ["ducha","regadera","bañarse","banarse"], "city centre": ["centro de la ciudad","centro"],
+  "goodbye": ["adiós","adios","hasta luego"], "snow": ["nevar","nieve"],
+  "hair": ["cabello","pelo"], "laugh": ["reír","reir","reírse","reirse"],
+  "drink": ["beber","tomar"], "coffee": ["café","cafe"], "somebody": ["alguien","alguna persona"]
+};
+
+function isAcceptedAnswer(word, answer, defaultAnswer){
+  const valid = acceptedAnswers[word] || [defaultAnswer];
+  if(!valid.some(v => normalize(v) === normalize(defaultAnswer))) valid.push(defaultAnswer);
+  return valid.some(v => normalize(answer) === normalize(v));
+}
 
 // navegación
 const navButtons = document.querySelectorAll('nav button');
@@ -335,13 +426,14 @@ function checkWriting(){
   const answer=writeInput.value;
   if(!answer.trim()) return;
   writeLocked=true;
-  const correct=writeDeck[writeIndex][1];
-  if(normalize(answer)===normalize(correct)){
+  const [word, correct]=writeDeck[writeIndex];
+  if(isAcceptedAnswer(word, answer, correct)){
     writePoints++;
     writeFeedback.textContent='¡Correcto!';
     writeFeedback.className='feedback good';
   } else {
-    writeFeedback.textContent=`Respuesta correcta: ${correct}`;
+    const alternatives = acceptedAnswers[word] || [correct];
+    writeFeedback.textContent=`Respuesta aceptada: ${alternatives.slice(0,4).join(' / ')}`;
     writeFeedback.className='feedback bad';
   }
   writeScore.textContent=`Puntos: ${writePoints}`;
@@ -353,9 +445,20 @@ skipWrite.onclick=()=>{if(writeLocked)return;writeFeedback.textContent=`Respuest
 writeInput.addEventListener('keydown',e=>{if(e.key==='Enter')checkWriting()});
 renderWrite();
 
-// LISTA
-listCount.textContent=`${vocab.length} palabras`;
-vocabList.innerHTML=vocab.map(([en,es])=>`<div class="vocab-item"><strong>${en}</strong><span>${es}</span></div>`).join('');
+// LISTA Y CAMBIO DE LECCIÓN
+function renderList(){
+  listCount.textContent=`${vocab.length} palabras`;
+  vocabList.innerHTML=vocab.map(([en,es])=>`<div class="vocab-item"><strong>${en}</strong><span>${es}</span></div>`).join('');
+}
+function changeLesson(){
+  vocab = lessons[lessonSelect.value];
+  flashDeck=[...vocab]; flashIndex=0; renderFlash();
+  startMC();
+  writeDeck=shuffle(vocab); writeIndex=0; writePoints=0; writeLocked=false; renderWrite();
+  renderList();
+}
+lessonSelect.addEventListener('change', changeLesson);
+renderList();
 </script>
 </body>
 </html>
